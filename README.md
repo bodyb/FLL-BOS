@@ -1,7 +1,8 @@
 # FLL-BOS
 
 #ddd file:
-returnHome() function
+contains everything needed for the pathfinding movement system
+Contains gyro class, node class, Cardinal function, MoveInDirections function, ReturnHome function, Log function, and DetectMovement function.
 
 Gyro class used to store the cardinal direction yaw values
 
@@ -29,5 +30,14 @@ Log Function:
 Place after every piece of movment code
 Logs the current angle and movement the robot travelled at the current time
 
-Detect
+DetectMovement Function:
+This function returns the position of the robot, it acts like a varible
+Uses sign a cosign to detect the amount of movement the robot made veritcal and horizontal
+The amount travelled is the hypotenuse of the triangle and sign and cosign of the current angle are multiple by amount travelled to get its position
+
+#Functions File:
+Contains previously made functions used in the 2021 - 2022 FLL season
+Contains 
+
+
 
