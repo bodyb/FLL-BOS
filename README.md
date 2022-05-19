@@ -37,7 +37,34 @@ The amount travelled is the hypotenuse of the triangle and sign and cosign of th
 
 #Functions File:
 Contains previously made functions used in the 2021 - 2022 FLL season
-Contains 
+Contains Working Gyro class, UltraDrive function, turn function by David Dong, DUD function, DDUD function, GyroTurn, ForkLift function, and linefollow function
+
+Contains In Progess / NOT working DoubleUltraDrive function, GyroDrive function, createMap function, pain function, Cardinal function, MoveInDirection function, Move function, and returnHome function
+
+UltraDrive function:
+drive the bot forward until target distance reached by the UltraSonic sensor
+
+Turn function:
+Turns the bot for the amount of degrees
+Created by David Dong
+
+DUD function:
+drive the bot forward until target distance reached by the UltraSonic sensor
+Uses gyro to keep straight
+
+DDUD function:
+drive the bot forward until target distance reached by degree calculations
+Uses gyro to keep straight
+
+GyroTurn function:
+Turns the bot the target degrees, in the target direction
+
+ForkLift function:
+Moves the forklift up and down based on the string input
+
+LineFollow function:
+Follows the line on the board by turning across the black line
+
 
 
 
