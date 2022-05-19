@@ -1,0 +1,512 @@
+from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, MotionSensor, Speaker, ColorSensor, App, DistanceSensor, Motor, MotorPair
+from spike.control import wait_for_seconds, wait_until, Timer
+from math import *
+
+
+hub = PrimeHub()
+
+class Gyro():
+    def __init__(self, current_yaw, updated_yaw):
+        self.current_yaw = current_yaw = 0
+        self.north = 0
+        self.south = -180
+        self.east = 90
+        self.west = -90
+        self.north_west = -45
+        self.north_east = 45
+        self.south_west = -135
+        self.south_east = 135
+        self.updated_yaw  = updated_yaw = 0
+
+class Node():
+    #Nichalos Swift
+    def __init__(self, parent=None, position=None):
+        self.parent = parent
+        self.position = position
+        self.g = 0
+        self.h = 0
+        self.f = 0
+
+    def __eq__(self, other):
+        return self.position == other.position
+
+#Names the motors and sensors to be called later in the program
+drive = MotorPair('D', 'B')
+left = Motor('D')
+right = Motor('B')
+gyro = Gyro(0, 0)
+#Evil_Arm = Motor('E')
+#ds = DistanceSensor('A')
+#cs = ColorSensor('C')
+#distance_cm = ds.get_distance_cm()
+wheel_circumference = 18 #cm
+H = 3
+O = 2
+X = 1
+current_map = [
+        #starting are inspection
+        #12345678910 11 12 13 14 15 16 17 18 19 20 21 22
+        [H, H, H, X, X, O, O, X, X, X, O, O, O, O, X, X, X, O, O, O, X, X], #12
+        [H, H, H, X, X, O, O, X, X, X, X, O, O, O, O, X, X, X, O, O, O, X], #11
+        [H, H, H, O, O, O, X, O, X, X, X, O, O, O, O, X, X, X, O, O, X, X], #10
+        [H, H, H, O, O, O, X, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #9
+        [H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #8
+        [H, H, H, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #7
+        [H, H, H, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #6
+        [H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #5
+        [H, H, H, H, O, O, O, X, X, X, X, X, X, X, X, X, X, O, O, O, X, X], #4
+        [H, H, H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X, X, X], #3
+        [H, H, H, H, H, H, O, O, O, O, O, O, O, X, X, O, O, O, X, X, X, X], #2
+        [H, H, H, H, H, H, H, O, O, O, O, O, O, X, X, O, X, O, X, X, X, X]#1
+    ]
+robot_transform = {
+        "Cardinal" : "North",
+        "Driving" : "straight",
+        "Column" : 0,
+        "Row" : 0,
+        "Vertical_Movement" : 0,
+        "Horizantal_Movement" : 0
+    }
+
+
+#Gryo Angle Code
+yaw_angle = hub.motion_sensor.get_yaw_angle()
+
+#Creates a driving function to be used later in the program
+def UltraDrive(length, speed):
+    while True:
+        #Starts the driving motors
+        drive.start(0, speed)
+        #Waits for the distance to be greater than the inputted length
+        ds.wait_for_distance_farther_than(length, 'cm')
+        #Stops the driving motors
+        drive.stop()
+        hub.light_matrix.show_image('DUCK')
+        break
+
+def DoubleUltraDrive(length, speed):
+    #Names the different varibles used for the rest of the function
+    driving_angle = hub.motion_sensor.get_yaw_angle()
+    dist_reached = False
+    #Starts the while true loop that is used for the rest of the function
+    while True:
+        distance_cm = ds.get_distance_cm()
+        #Prints out the driving angle and the current angle for the coder to check them
+        print(driving_angle, hub.motion_sensor.get_yaw_angle(), distance_cm)
+        #Checks if the drving angle is equal to the current yaw or not
+        if driving_angle != hub.motion_sensor.get_yaw_angle():
+            print("working")
+            #Checks which way the yaw angle is different from the driving angle
+            if driving_angle >= hub.motion_sensor.get_yaw_angle():
+                print(">")
+                drive.start(driving_angle * -500, speed)
+            elif driving_angle <= hub.motion_sensor.get_yaw_angle():
+                print("<")
+                drive.start(driving_angle * -500, speed)
+        elif driving_angle == hub.motion_sensor.get_yaw_angle():
+            print("good")
+            #If the angle is correct the robot drives forward
+            drive.start(0, speed)
+        if length >= distance_cm:
+            distance_cm = ds.get_distance_cm()
+        #Checks if the distance currently sensed is greater than the inputted distance
+        if length <= distance_cm:
+            drive.stop()
+            break
+        #Checks if the Distance has been reached
+        if dist_reached == True:
+            #Stops the motors
+            drive.stop()
+            break
+
+def GyroDrive(length, speed):
+    driving_angle = hub.motion_sensor.get_yaw_angle()
+    dist_reached = False
+    degrees_required = length / wheel_circumference * 360
+    while True:
+        leftDegrees = abs(left.get_degrees_counted())
+        rightDegrees = abs(right.get_degrees_counted())
+
+        #print(rightNumRot, "right")
+        print(leftDegrees)
+        if driving_angle != hub.motion_sensor.get_yaw_angle():
+            if driving_angle > hub.motion_sensor.get_yaw_angle() and dist_reached != True:
+                print(">")
+                left.start(-50)
+            elif driving_angle < hub.motion_sensor.get_yaw_angle() and dist_reached != True:
+                print("<")
+                right.start(-50)
+        if driving_angle == hub.motion_sensor.get_yaw_angle():
+            #print("good")
+            drive.start(0, -speed)
+        if degrees_required <= leftDegrees and degrees_required <= rightDegrees:
+            print("done")
+            dist_reached = True
+        if dist_reached == True:
+            drive.stop()
+            left.stop()
+            right.stop()
+            left.set_degrees_counted(0)
+            right.set_degrees_counted(0)
+            break
+
+
+def turn(degree):
+    drive.move_tank(degree * 2, unit="degrees", left_speed=25, right_speed=-25)
+
+def DUD(length, speed):
+    #Starts a Loop until the function ends
+    degrees_required = length / wheel_circumference * 360
+    driving_angle = hub.motion_sensor.get_yaw_angle()
+    while True:
+        #Creates two varibles for the distance and yaw angle
+        current_dva = hub.motion_sensor.get_yaw_angle()
+        if driving_angle < 0:
+            dva = current_dva - driving_angle
+        if driving_angle > 0:
+            dva = current_dva - driving_angle
+        distance_cm = ds.get_distance_cm()
+        leftDegrees = abs(left.get_degrees_counted())
+        rightDegrees = abs(right.get_degrees_counted())
+        #Uses a print function for the coder to check
+        print(dva, dva * -2, distance_cm, degrees_required, leftDegrees, rightDegrees)
+        #Starts the movement motors
+        drive.start(dva * -2, speed)
+        #Waits for the inputted length and stops the motors
+        if distance_cm > length:
+            print("Checking")
+            #if degrees_required <= leftDegrees and degrees_required <= rightDegrees:
+            print("You're Good")
+            drive.stop()
+            left.set_degrees_counted(0)
+            right.set_degrees_counted(0)
+            break
+
+def DDUD(length, speed):
+    #Starts a Loop until the function ends
+    degrees_required = length / wheel_circumference * 360
+    driving_angle = hub.motion_sensor.get_yaw_angle()
+    while True:
+        current_dva = hub.motion_sensor.get_yaw_angle()
+        if driving_angle < 0:
+            dva = current_dva - driving_angle
+        if driving_angle > 0:
+            dva = current_dva - driving_angle
+        #Creates two varibles for the distance and yaw angle
+        leftDegrees = abs(left.get_degrees_counted())
+        rightDegrees = abs(right.get_degrees_counted())
+        #Uses a print function for the coder to check   
+        print(dva, dva * -2, distance_cm, leftDegrees, rightDegrees, degrees_required) 
+        #Starts the movement motors
+        drive.start(dva * -2, speed)
+        #Waits for the inputted length and stops the motors
+        if degrees_required <= leftDegrees and degrees_required <= rightDegrees:
+            drive.stop()
+            left.set_degrees_counted(0)
+            right.set_degrees_counted(0)
+            break
+
+def GyroTurn(angle, turn, speed):
+    hub.motion_sensor.reset_yaw_angle()
+    while True:
+        if turn == "right":
+            if hub.motion_sensor.get_yaw_angle() < angle:
+                left.start(-speed)
+            if hub.motion_sensor.get_yaw_angle() >= angle:
+                left.stop()
+                break
+        if turn == "left":
+            if hub.motion_sensor.get_yaw_angle() > -angle:
+                right.start(speed)
+            if hub.motion_sensor.get_yaw_angle() <= -angle:
+                right.stop()
+                break
+
+def ForkLift(direction, speed):
+    if direction == "up":
+        Evil_Arm.run_for_rotations(7.5, speed)
+    if direction == "down":
+        Evil_Arm.run_for_rotations(-7.5, speed)
+
+def LineFollow(cycles, unit, speed):
+    color = cs.get_color()
+    cycle_n = 0
+    while True:
+        color = cs.get_color()
+        if color == "white":
+            left.start(-speed)
+            right.start(-speed + 25)
+            cycle_n = cycle_n + 0.1
+        if color == "black":
+            left.start(speed - 25)
+            right.start(speed)
+            cycle_n = cycle_n + 0.1
+        print(color, cycle_n)
+        #drive.start(dva * 10, speed)
+        if cycle_n >= cycles:
+            print("yay")
+            left.stop()
+            right.stop()
+            break
+
+def createMap(length, width):
+    pair = []
+    mat = []
+    for x in range(length):
+        for y in range(width):
+            #pair_name = "pair" + str(x) + "," + str(y)
+            mat.insert(x, [x, y])
+    print(mat)
+
+def pain(maze, start, end):
+    #Nichalos Swift
+    start_node = Node(None, start)
+    start_node.g = start_node.h = start_node.f = 0
+    end_node = Node(None, end)
+    end_node.g = end_node.h = end_node.f = 0
+    open_list = []
+    closed_list = []
+    open_list.append(start_node)
+    while len(open_list) > 0:
+        current_node = open_list[0]
+        current_index = 0
+        for index, item in enumerate(open_list):
+            if item.f < current_node.f:
+                current_node = item
+                current_index = index
+        open_list.pop(current_index)
+        closed_list.append(current_node)
+        if current_node == end_node:
+            path = []
+            current = current_node
+            while current is not None:
+                path.append(current.position)
+                current = current.parent
+            return path[::-1]
+        children = []
+        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
+            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            if node_position[0] > (len(maze) - 1) or node_position[0] < 0 or node_position[1] > (len(maze[len(maze)-1]) -1) or node_position[1] < 0:
+                continue
+            if maze[node_position[0]][node_position[1]] != 2 and maze[node_position[0]][node_position[1]] != 3:
+                continue
+            new_node = Node(current_node, node_position)
+            children.append(new_node)
+        for child in children:
+            for closed_child in closed_list:
+                if child == closed_child:
+                    continue
+            child.g = current_node.g + 1
+            child.h = ((child.position[0] - end_node.position[0]) ** 2) + ((child.position[1] - end_node.position[1]) ** 2)
+            child.f = child.g + child.h
+            for open_node in open_list:
+                if child == open_node and child.g > open_node.g:
+                    continue
+            open_list.append(child)
+
+def Cardinal(direction):
+    gyro.current_yaw = hub.motion_sensor.get_yaw_angle()
+    while True:
+        gyro.updated_yaw = hub.motion_sensor.get_yaw_angle()
+        target_cardinal = None
+        movement_length = 0
+        modifier = 20
+        if direction == "North":
+            target_cardinal = gyro.north
+        if direction == "South":
+            target_cardinal = gyro.south
+        if direction == "West":
+            target_cardinal = gyro.west
+        if direction == "East":
+            target_cardinal = gyro.east
+        if direction == "North_East":
+            target_cardinal = gyro.north_east
+        if direction == "North_West":
+            target_cardinal = gyro.north_west
+        if direction == "South_West":
+            target_cardinal = gyro.south_west
+        if direction == "South_East":
+            target_cardinal = gyro.south_east
+        if gyro.current_yaw > 0:
+            movement_length = target_cardinal - gyro.current_yaw
+        if gyro.current_yaw < 0:
+            movement_length = target_cardinal + gyro.current_yaw
+        if gyro.current_yaw == 0:
+            movement_length = target_cardinal
+        copysign(modifier, target_cardinal)
+        print(target_cardinal, movement_length)
+        drive.move_tank(movement_length * 2 + modifier, "degrees", left_speed = 25, right_speed = -25)
+        break
+
+        
+
+def MoveInDirections(path, grid_rate, speed, reverse):
+    if reverse == True:
+        path.reverse()
+    print(path)
+    print(len(path))
+    directions = []
+    straight_line = grid_rate
+    dianogal_line = sqrt(2 * grid_rate * grid_rate)
+    for x in range(len(path) - 1):
+        current_node = path[len(path) - 1 - x]
+        possible_outcomes = [[0, 1], [1, 0], [1, 1], [-1, 0], [0, -1], [-1, -1], [1, -1], [-1, 1]]
+        #print(current_node)
+        next_node = path[len(path) - 2 - x]
+        #print(next_node)
+        direction = [current_node[0] - next_node[0], current_node[1] - next_node[1]]
+        directions.insert(x, [current_node[0] - next_node[0], current_node[1] - next_node[1]])
+        print(directions)
+        if direction == possible_outcomes[0]:
+            print("North")
+            Cardinal("North")
+            drive.move(straight_line, "cm", 0, speed)
+        if direction == possible_outcomes[1]:
+            print("East")
+            Cardinal("East")
+            drive.move(straight_line, "cm", 0, speed)
+        if direction == possible_outcomes[2]:
+            print("North_East")
+            Cardinal("North_East")
+            drive.move(dianogal_line, "cm", 0, speed)
+        if direction == possible_outcomes[3]:
+            print("West")
+            Cardinal("West")
+            drive.move(straight_line, "cm", 0, speed)
+        if direction == possible_outcomes[4]:
+            print("South")
+            Cardinal("South")
+            drive.move(straight_line, "cm", 0, speed)
+        if direction == possible_outcomes[5]:
+            print("South_East")
+            Cardinal("South_East")
+            drive.move(dianogal_line, "cm", 0, speed)
+        if direction == possible_outcomes[6]:
+            print("North_West")
+            Cardinal("North_West")
+            drive.move(dianogal_line, "cm", 0, speed)
+        if direction == possible_outcomes[7]:
+            print("South_West")
+            Cardinal("South_West")
+            drive.move(dianogal_line, "cm", 0, speed)
+
+def Move(current_position, new_position, speed):
+    MoveInDirections(pain(current_map, current_position, new_position), speed, True)
+
+def returnHome():
+    X = 1
+    O = 2
+    H = 3
+    length = 242 #cm
+    width = 142 #cm
+    grid_rate = 11 #cm
+    square_area = 121 #cm^2
+    #12 down
+    #22 longth
+    current_map = [
+        #starting are inspection
+        #12345678910 11 12 13 14 15 16 17 18 19 20 21 22
+        [O, O, O, X, X, O, O, X, X, X, O, O, O, O, X, X, X, O, O, O, X, X], #12
+        [O, O, O, X, X, O, O, X, X, X, X, O, O, O, O, X, X, X, O, O, O, X], #11
+        [O, O, O, O, O, O, X, O, X, X, X, O, O, O, O, X, X, X, O, O, X, X], #10
+        [O, O, O, O, O, O, X, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #9
+        [O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #8
+        [O, O, O, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #7
+        [O, O, O, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #6
+        [O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X], #5
+        [O, O, O, O, O, O, O, X, X, X, X, X, X, X, X, X, X, O, O, O, X, X], #4
+        [O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X, X, X], #3
+        [O, O, O, O, O, O, O, O, O, O, O, O, O, X, X, O, O, O, X, X, X, X], #2
+        [O, O, O, O, O, O, O, O, O, O, O, O, O, X, X, O, X, O, X, X, X, X]#1
+    ]
+
+    r12 = [H, H, H, X, X, O, O, X, X, X, O, O, O, O, X, X, X, O, O, O, X, X]
+    r11 = [H, H, H, X, X, O, O, X, X, X, X, O, O, O, O, X, X, X, O, O, O, X]
+    r10 = [H, H, H, O, O, O, X, O, X, X, X, O, O, O, O, X, X, X, O, O, X, X]
+    r9 = [H, H, H, O, O, O, X, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X]
+    r8 = [H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X]
+    r7 = [H, H, H, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X]
+    r6 = [H, H, H, X, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X]
+    r5 = [H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X]
+    r4 = [H, H, H, H, O, O, O, X, X, X, X, X, X, X, X, X, X, O, O, O, X, X]
+    r3 = [H, H, H, H, H, O, O, O, O, O, O, O, O, O, O, O, O, O, X, X, X, X]
+    r2 = [H, H, H, H, H, H, O, O, O, O, O, O, O, X, X, O, O, O, X, X, X, X]
+    r1 = [H, H, H, H, H, H, H, O, O, O, O, O, O, X, X, O, X, O, X, X, X, X]
+
+    #Row numbers 1 - 12
+    #Column numbers 0 - 21
+    #degrees_required = length / wheel_circumference * 360
+    left.set_degrees_counted(0)
+    right.set_degrees_counted(0)
+    #Position Safe or Danger check, uses row and column
+    row_number = robot_transform.get("Row")
+    column_number = robot_transform.get("Column")
+    print(row_number, column_number)
+    row_list = [r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12]
+    position = 0
+
+    for i in range(22):
+        if column_number == i:
+            current_row = row_list[row_number - 1]
+            print(current_row)
+            position = current_row[column_number]
+            
+    if position == 1:
+        print("danger")
+    if position == 2:
+        print("safe")
+    if position == 3:
+        print("Home")
+    
+    #movement detection center
+    left.set_degrees_counted(0)
+    right.set_degrees_counted(0)
+    #Movement Code under is the comment is detected and run
+    #drive.move(-10, "cm", 0, 100)
+    drive.move(12, "cm", 0, 50)
+    gyro.current_yaw = hub.motion_sensor.get_yaw_angle()
+    print(robot_transform)
+    while True:
+        fixed_yaw = 0
+        gyro.updated_yaw = hub.motion_sensor.get_yaw_angle()
+        leftDegrees = left.get_degrees_counted()
+        rightDegrees = right.get_degrees_counted()
+        if gyro.updated_yaw > 0:
+            fixed_yaw = abs(gyro.updated_yaw - 90)
+        if gyro.updated_yaw < 0:
+            fixed_yaw = abs(gyro.updated_yaw) + 90
+        if gyro.updated_yaw == 0:
+            fixed_yaw = abs(gyro.updated_yaw) + 90
+        if gyro.updated_yaw >= 90 and gyro.updated_yaw <= 179:
+            fixed_yaw = 360 - (gyro.updated_yaw - 90)
+        if gyro.updated_yaw == -180:
+            fixed_yaw = abs(gyro.updated_yaw) + 90
+        dist_travelled = leftDegrees / 360 * wheel_circumference
+        robot_transform["Horizantal_Movement"] = cos(fixed_yaw) * dist_travelled
+        robot_transform["Vertical_Movement"] = sin(fixed_yaw) * dist_travelled
+        if gyro.updated_yaw == gyro.north:
+            robot_transform["Cardinal"] = "North"
+        if gyro.updated_yaw == gyro.south:
+            robot_transform["Cardinal"] = "South"
+        if gyro.updated_yaw == gyro.west:
+            robot_transform["Cardinal"] = "West"
+        if gyro.updated_yaw == gyro.east:
+            robot_transform["Cardinal"] = "East"
+        robot_transform["Row"] = round(robot_transform["Horizantal_Movement"] / grid_rate)
+        robot_transform["Column"] = round(robot_transform["Vertical_Movement"] / grid_rate)
+        break
+    print(robot_transform, fixed_yaw, dist_travelled)    
+        #MoveInDirections(pain(current_map, [robot_transform["Column"], robot_transform["Row"]], [0, 0]), grid_rate, 30, False)
+    #path = pain(current_map, [0, 0], [18, 4])
+
+#dear god, please help Bowen tof
+#returnHome()
+#pain()
+#Help me im dying in a deteriorating state please send the suicide hotline number
+hub.motion_sensor.reset_yaw_angle()
+#MoveInDirections([[4, 4], [3, 4], [2, 3], [1, 2], [0, 1], [0, 0]], 11, 30, True)
+#createMap(5, 5)
+#Cardinal("North_West")
+path = pain(current_map, [1,1], [8, 2])
+
+
