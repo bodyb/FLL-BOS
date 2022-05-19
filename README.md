@@ -20,5 +20,14 @@ Moves the bot across the board using the Cardinal function
 Translates the path from Astar function to a list of possible out comes
 Then checks the new outcomes to a list and turns the bot to the new direction and moves the correct distance
 
-returnHome Function
+returnHome Function:
+Holds the map of the board
+Returns the bot back to home
+The memory of the spike is limited so this function breaks up the path locations so it creates multiple positions to travel to first and then to the end
+
+Log Function:
+Place after every piece of movment code
+Logs the current angle and movement the robot travelled at the current time
+
+Detect
 
