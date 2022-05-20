@@ -31,7 +31,7 @@ gyroLog = []
 movementLog = []
 wheel_circumference = 18 #cm
 
-#Made by Nichalos Swift
+#Created by Nichalos Swift
 #Creates the Node Class
 class Node():
     def __init__(self, parent=None, position=None):
@@ -46,7 +46,7 @@ class Node():
     def __eq__(self, other):
         return self.position == other.position
 
-#Made by Nichalos Swift
+#Created by Nichalos Swift
 #Creates the Pathfinding Function
 def astar(maze, start, end):
     #Creates the start and end nodes
@@ -177,19 +177,23 @@ def moveInDirections(path, grid_rate, speed, reverse):
                     drive.move(straight_line, "cm", 0, speed)
 
 #Creates the logging function of the movement detection
-def log():
+def log(type):
     #Defines the amount of degrees travelled to detection the movement
     leftDegrees = left.get_degrees_counted()
     #Adds the current yaw to the gyroLog array
-    gyroLog.append(drive.currentAngle)
-    #Adds the amount travelled by the bot to the movementLog array
-    if len(movementLog) > 0:
-        #If there is more than one item in the list it subtracts the current movement from the previous movement
-        movementLog.append((leftDegrees / 360 * wheel_circumference) - movementLog[len(movementLog) - 2])   
-    else:
-        #Else it just adds the orginal movement
-        movementLog.append(leftDegrees / 360 * wheel_circumference)
-    print(gyroLog, movementLog)
+    if type == "Movement":
+        gyroLog.append(hub.motion_sensor.get_yaw_angle())
+        #Adds the amount travelled by the bot to the movementLog array
+        if len(movementLog) > 0:
+            #If there is more than one item in the list it subtracts the current movement from the previous movement
+            movementLog.append((leftDegrees / 360 * wheel_circumference) - movementLog[len(movementLog) - 2])   
+        else:
+            #Else it just adds the orginal movement
+            movementLog.append(leftDegrees / 360 * wheel_circumference)
+        print(gyroLog, movementLog)
+    elif type == "Gyro":
+        gyroLog.append(hub.motion_sensor.get_yaw_angle())
+        movementLog.append(0)
 
 #Defines the movement detection function
 def detectMovement(verticalMovement, horizontalMovement):
