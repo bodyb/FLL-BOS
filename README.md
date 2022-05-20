@@ -13,13 +13,13 @@ Node class used in the pathfinding system
 Astar is the pathfinding system
 
 Cardinal Function:
-Used to turn the bot in any of the eight Cardinal direction
+Used to turn the bot in any of the eight Cardinal directions
 The turn may be off due to drag on the board
 
 MoveInDirections Function:
 Moves the bot across the board using the Cardinal function
-Translates the path from Astar function to a list of possible out comes
-Then checks the new outcomes to a list and turns the bot to the new direction and moves the correct distance
+Translates the path from Astar function to a list of possible outcomes
+Then checks the new outcomes against a list and turns the bot to the new direction and moves the correct distance
 
 returnHome Function:
 Holds the map of the board
@@ -27,13 +27,13 @@ Returns the bot back to home
 The memory of the spike is limited so this function breaks up the path locations so it creates multiple positions to travel to first and then to the end
 
 Log Function:
-Place after every piece of movment code
+Place after every piece of movement code
 Logs the current angle and movement the robot travelled at the current time
 
 DetectMovement Function:
 This function returns the position of the robot, it acts like a varible
 Uses sign a cosign to detect the amount of movement the robot made veritcal and horizontal
-The amount travelled is the hypotenuse of the triangle and sign and cosign of the current angle are multiple by amount travelled to get its position
+The amount traveled is the hypotenuse of the triangle and sign and cosign of the current angle are multiple by amount traveled to get its position
 
 #Functions File:
 Contains previously made functions used in the 2021 - 2022 FLL season
