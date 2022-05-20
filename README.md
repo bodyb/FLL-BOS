@@ -28,6 +28,8 @@ The memory of the spike is limited so this function breaks up the path locations
 
 Log Function:
 Place after every piece of movement code
+Enter either Gyro or Movement as the argument
+Use gyro to detect turns and use Movement to detect movement
 Logs the current angle and movement the robot travelled at the current time
 
 DetectMovement Function:
