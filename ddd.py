@@ -31,6 +31,7 @@ gyroLog = []
 movementLog = []
 wheel_circumference = 18 #cm
 
+#Made by Nichalos Swift
 #Creates the Node Class
 class Node():
     def __init__(self, parent=None, position=None):
@@ -45,6 +46,7 @@ class Node():
     def __eq__(self, other):
         return self.position == other.position
 
+#Made by Nichalos Swift
 #Creates the Pathfinding Function
 def astar(maze, start, end):
     #Creates the start and end nodes
